@@ -4,6 +4,13 @@ class Driver:
         self.name = name
         self.trucks_driven = {}
         self.fuel_saved = 0
+        self.money_saved = 0
+        self.all_distance = 0
+
+    def calc_distance_covered(self):
+        for distance in self.trucks_driven.values():
+            self.all_distance += distance
+        return self.all_distance
 
 
 class Truck:

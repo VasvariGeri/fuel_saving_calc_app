@@ -16,6 +16,7 @@ class FuelSavingManager:
         self.waybills = self.file_reader.read_waybill_file(self.trucks.keys())
         self.norma = self.file_reader.read_norma_file()
         self.all_distance = 0
+        self.all_money_saved = 0
 
     def _get_trucks(self):
         for index, row in self.mol_riport.iterrows():
@@ -80,10 +81,24 @@ class FuelSavingManager:
             all_consumption_real += truck.fuel_tanked
         return round(all_consumption_by_norma - all_consumption_real)
 
-    def main_calculation(self):
-        consumption_diff = self._calc_consumption_diff()
-        print(consumption_diff)
+    def _calc_average_saving_per_km(self, consumption_diff):
+        return consumption_diff / self.all_distance
 
+    def _calc_savings(self, average_saving, fuel_price):
+        for driver_name in self.drivers:
+            driver = self.drivers[driver_name]
+            driver.fuel_saved = average_saving * driver.calc_distance_covered()
+            driver.money_saved = driver.fuel_saved * fuel_price
+            if driver.money_saved < 100000:
+                self.all_money_saved += driver.money_saved
+            else:
+                self.all_money_saved += 100000
+
+    def main_calculation(self, fuel_price):
+        consumption_diff = self._calc_consumption_diff()
+        average_saving_per_km = self._calc_average_saving_per_km(consumption_diff)
+        self._calc_savings(average_saving_per_km, fuel_price)
+        print(self.all_money_saved)
 
 def main():
     start = datetime.datetime.now()
@@ -92,7 +107,7 @@ def main():
     manager = FuelSavingManager(config.YEAR, config.MONTH)
     manager.process_waybills(config.YEAR, config.MONTH)
     manager.process_norma_file()
-    manager.main_calculation()
+    manager.main_calculation(config.FUEL_PRICE)
     config.root.destroy()
     end = datetime.datetime.now()
     print(end - start)
