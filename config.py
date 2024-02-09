@@ -36,4 +36,3 @@ class ConfigHelper:
     def display_gui(self):
         self._get_year()
         self._get_month()
-        self.root.destroy()
