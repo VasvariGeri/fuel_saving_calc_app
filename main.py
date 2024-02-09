@@ -71,11 +71,10 @@ class FuelSavingManager:
             messagebox.showerror("Error", f"Missing norma info:\n{errors_message}")
 
     def _calc_truck_params(self):
-        for truck in self.trucks:
-            self.all_distance += self.trucks[truck].distance_covered
+        for plate_nr in self.trucks:
+            truck = self.trucks[plate_nr]
+            self.all_distance += truck.distance_covered
             truck.calc_norma()
-
-
 
     def main_calculation(self):
         self._calc_truck_params()
@@ -88,6 +87,7 @@ def main():
     manager = FuelSavingManager(config.YEAR, config.MONTH)
     manager.process_waybills(config.YEAR, config.MONTH)
     manager.process_norma_file()
+    manager.main_calculation()
     end = datetime.datetime.now()
     print(end - start)
 

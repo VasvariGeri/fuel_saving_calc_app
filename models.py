@@ -22,10 +22,10 @@ class Truck:
     def calc_norma(self):
         if self.formula is not None:
             formatted_formula = self.formula
-            formatted_formula.replace("Gm", str(self.total_weight))
-            formatted_formula.replace("Gs", str(self.self_weight))
-            formatted_formula.replace("N", str(self.performance))
-            formatted_formula.replace("0,", ".")
-            formatted_formula.replace(",", ".")
+            formatted_formula = formatted_formula.replace("Gm", str(self.total_weight))
+            formatted_formula = formatted_formula.replace("Gs", str(self.self_weight))
+            formatted_formula = formatted_formula.replace("N", str(self.performance))
+            formatted_formula = formatted_formula.replace("0,", ".")
+            formatted_formula = formatted_formula.replace(",", ".")
             self.norma = round(eval(formatted_formula), 2)
-            
+
