@@ -49,7 +49,6 @@ class FuelSavingManager:
                     else:
                         self.drivers[driver_name].trucks_driven[plate_nr] += distance
                     truck = self._get_truck_by_plate_nr(plate_nr)
-                    truck.distance_covered = distance
                     truck.distance_covered += distance
                     truck.cooling_time += row["Hűtés"]
 
@@ -70,14 +69,20 @@ class FuelSavingManager:
             errors_message = "\n".join(errors)
             messagebox.showerror("Error", f"Missing norma info:\n{errors_message}")
 
-    def _calc_truck_params(self):
+    def _calc_consumption_diff(self):
+        all_consumption_by_norma = 0
+        all_consumption_real = 0
         for plate_nr in self.trucks:
             truck = self.trucks[plate_nr]
             self.all_distance += truck.distance_covered
-            truck.calc_norma()
+            norma = truck.calc_norma()
+            all_consumption_by_norma += truck.calc_all_consumption_by_norma(norma)
+            all_consumption_real += truck.fuel_tanked
+        return round(all_consumption_by_norma - all_consumption_real)
 
     def main_calculation(self):
-        self._calc_truck_params()
+        consumption_diff = self._calc_consumption_diff()
+        print(consumption_diff)
 
 
 def main():
@@ -88,6 +93,7 @@ def main():
     manager.process_waybills(config.YEAR, config.MONTH)
     manager.process_norma_file()
     manager.main_calculation()
+    config.root.destroy()
     end = datetime.datetime.now()
     print(end - start)
 
