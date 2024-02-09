@@ -1,5 +1,6 @@
 import pandas as pd
 import yaml
+import os
 from tkinter import messagebox
 
 
@@ -35,6 +36,9 @@ class FileReaderHelper:
 
     def read_norma_file(self):
         norma_filepath = f"./input/norma_segédtáblázat.yml"
+        if not os.path.exists(norma_filepath):
+            messagebox.showerror("Error", "Norma file missing")
+            exit(1)
         with open(norma_filepath, 'r') as file:
             data = yaml.safe_load(file)
-        print(data)
+        return data
