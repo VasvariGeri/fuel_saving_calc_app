@@ -7,10 +7,10 @@ from config import ConfigHelper
 
 
 class FuelSavingManager:
-    def __init__(self, year, month, fuel_price):
+    def __init__(self, year, month, fuel_price, limit):
         self.trucks = {}
         self.drivers = {}
-        self.file_reader = FileIOHelper(year, month, fuel_price)
+        self.file_reader = FileIOHelper(year, month, fuel_price, limit)
         self.all_distance = 0
         self.all_money_saved = 0
 
@@ -90,36 +90,34 @@ class FuelSavingManager:
     def _calc_average_saving_per_km(self, consumption_diff):
         return consumption_diff / self.all_distance
 
-    def _calc_savings(self, average_saving, fuel_price):
+    def _calc_savings(self, average_saving, fuel_price, limit):
         for driver_name in self.drivers:
             driver = self.drivers[driver_name]
             driver.fuel_saved = round(average_saving * driver.calc_distance_covered(), 2)
             driver.money_saved = round(driver.fuel_saved * fuel_price)
-            if driver.money_saved < 100000:
+            if driver.money_saved < limit:
                 self.all_money_saved += driver.money_saved
             else:
-                self.all_money_saved += 100000
+                self.all_money_saved += limit
 
-    def main_calculation(self, fuel_price):
+    def main_calculation(self, fuel_price, limit):
         consumption_diff = self._calc_consumption_diff()
         average_saving_per_km = self._calc_average_saving_per_km(consumption_diff)
-        self._calc_savings(average_saving_per_km, fuel_price)
+        self._calc_savings(average_saving_per_km, fuel_price, limit)
         print(self.all_money_saved)
 
     def file_writing(self):
         self.file_reader.write_payroll_file(self.drivers, self.all_money_saved, self.all_distance)
 
+
 def main():
-    start = datetime.datetime.now()
     config = ConfigHelper()
     config.display_gui()
-    manager = FuelSavingManager(config.YEAR, config.MONTH, config.FUEL_PRICE)
+    manager = FuelSavingManager(config.YEAR, config.MONTH, config.FUEL_PRICE, config.LIMIT)
     manager.process_files(config.YEAR, config.MONTH)
-    manager.main_calculation(config.FUEL_PRICE)
+    manager.main_calculation(config.FUEL_PRICE, config.LIMIT)
     manager.file_writing()
     config.root.destroy()
-    end = datetime.datetime.now()
-    print(end - start)
 
 
 if __name__ == "__main__":

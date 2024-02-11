@@ -9,10 +9,11 @@ from reportlab.lib import colors
 
 
 class FileIOHelper:
-    def __init__(self, year, month, fuel_price):
+    def __init__(self, year, month, fuel_price, limit):
         self.YEAR = year
         self.MONTH = month
         self.FUEL = fuel_price
+        self.LIMIT = limit
 
     def read_riport_file(self):
         riport_filepath = f"./input/Ellenörző riport {self.YEAR} {self.MONTH}.xlsx"
@@ -94,7 +95,7 @@ class FileIOHelper:
         for driver in drivers.values():
             all_saved_fuel += driver.fuel_saved
             possible_money_saved += driver.money_saved
-            payable = 100000 if 100000 < driver.money_saved else driver.money_saved
+            payable = self.LIMIT if self.LIMIT < driver.money_saved else driver.money_saved
             driver_params = [driver.name, round(driver.all_distance), driver.fuel_saved, driver.money_saved, payable, ""]
             table_data.append(driver_params)
         summed = ["Összesen", round(all_distance), round(all_saved_fuel, 2), possible_money_saved, all_money, ""]
