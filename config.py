@@ -44,7 +44,7 @@ class ConfigHelper:
     def _get_limit(self):
         self.LIMIT = self._get_input("Enter payable limit:", self._is_valid_limit)
 
-    def display_gui(self):
+    def get_inputs(self):
         self._get_year()
         self._get_month()
         self._get_fuel_price()

@@ -9,14 +9,9 @@ from reportlab.lib import colors
 
 
 class FileIOHelper:
-    def __init__(self, year, month, fuel_price, limit):
-        self.YEAR = year
-        self.MONTH = month
-        self.FUEL = fuel_price
-        self.LIMIT = limit
 
-    def read_riport_file(self):
-        riport_filepath = f"./input/Ellenörző riport {self.YEAR} {self.MONTH}.xlsx"
+    def read_riport_file(self, year, month):
+        riport_filepath = f"./input/Ellenörző riport {year} {month}.xlsx"
         try:
             mol_excel_file = ExcelFile(riport_filepath)
         except FileNotFoundError:
@@ -53,17 +48,17 @@ class FileIOHelper:
             data = safe_load(file)
         return data
 
-    def write_payroll_file(self, drivers, all_money, all_distance):
+    def write_payroll_file(self, drivers, all_money, all_distance, year, month, fuel_price, limit):
         output_dir = "./output"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        filepath = f"./output/Bérfizetési jegyzék {self.YEAR} {self.MONTH}.pdf"
+        filepath = f"./output/Bérfizetési jegyzék {year} {month}.pdf"
         doc = SimpleDocTemplate(filepath)
-        elements = self._create_file_elements(drivers, all_money, all_distance)
+        elements = self._create_file_elements(drivers, all_money, all_distance, year, month, fuel_price, limit)
         doc.build(elements)
 
-    def _create_file_elements(self, drivers, all_money, all_distance):
+    def _create_file_elements(self, drivers, all_money, all_distance, year, month, fuel_price, limit):
         elements = []
         header = [Paragraph("CUSTODE TRANS KFT"), Paragraph("6100 Kiskunfélegyháza"), Paragraph("Bajcsi-Zsilinszky u. 24")]
         elements.extend(header)
@@ -75,11 +70,11 @@ class FileIOHelper:
             parent=getSampleStyleSheet()['Title'],
             alignment=1,
         )
-        title_text = f"Üzemanyag megtakarítás {self.YEAR}.{self.MONTH}"
+        title_text = f"Üzemanyag megtakarítás {year}.{month}"
         title = Paragraph(title_text, style=title_style, encoding="utf-8")
         elements.append(title)
         elements.append(title_space)
-        table_data = self._generate_table_data(drivers, all_money, all_distance)
+        table_data = self._generate_table_data(drivers, all_money, all_distance, limit)
         table_style = TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Add borders to all cells
@@ -91,7 +86,7 @@ class FileIOHelper:
         table = Table(table_data, style=table_style)
         elements.append(table)
         elements.append(space)
-        elements.append(Paragraph(f"Gázolaj egységár: {self.FUEL}"))
+        elements.append(Paragraph(f"Gázolaj egységár: {fuel_price}"))
         return elements
 
     def _change_character(self, driver):
@@ -99,22 +94,17 @@ class FileIOHelper:
             driver.name = driver.name.replace("ő", "ö")
             driver.name = driver.name.replace("ű", "ü")
 
-    def _generate_table_data(self, drivers, all_money, all_distance):
+    def _generate_table_data(self, drivers, all_money, all_distance, limit):
         table_data = [["Név", "Teljesített km", "Megtak liter", "Megtak Ft", "Kifizethetö", "Átvételi elismerés"]]
         all_saved_fuel = 0
         possible_money_saved = 0
         for driver in drivers.values():
             all_saved_fuel += driver.fuel_saved
             possible_money_saved += driver.money_saved
-            payable = self.LIMIT if self.LIMIT < driver.money_saved else driver.money_saved
+            payable = limit if limit < driver.money_saved else driver.money_saved
             self._change_character(driver)
             driver_params = [driver.name, round(driver.all_distance), driver.fuel_saved, driver.money_saved, payable, ""]
             table_data.append(driver_params)
         summed = ["Összesen", round(all_distance), round(all_saved_fuel, 2), possible_money_saved, all_money, ""]
         table_data.append(summed)
         return table_data
-
-
-
-
-

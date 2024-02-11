@@ -6,15 +6,16 @@ from config import ConfigHelper
 
 
 class FuelSavingManager:
-    def __init__(self, year, month, fuel_price, limit):
+    def __init__(self):
         self.trucks = {}
         self.drivers = {}
-        self.file_reader = FileIOHelper(year, month, fuel_price, limit)
+        self.config = ConfigHelper()
+        self.file_reader = FileIOHelper()
         self.all_distance = 0
         self.all_money_saved = 0
 
     def _process_mol_riport(self):
-        mol_riport = self.file_reader.read_riport_file()
+        mol_riport = self.file_reader.read_riport_file(self.config.YEAR, self.config.MONTH)
         for index, row in mol_riport.iterrows():
             plate_nr = row["Rendszám"]
             if notna(plate_nr):
@@ -70,9 +71,9 @@ class FuelSavingManager:
             errors_message = "\n".join(errors)
             messagebox.showerror("Error", f"Missing norma info:\n{errors_message}")
 
-    def process_files(self, year, month):
+    def process_files(self):
         self._process_mol_riport()
-        self._process_waybills(year, month)
+        self._process_waybills(self.config.YEAR, self.config.MONTH)
         self._process_norma_file()
 
     def _calc_consumption_diff(self):
@@ -99,23 +100,23 @@ class FuelSavingManager:
             else:
                 self.all_money_saved += limit
 
-    def main_calculation(self, fuel_price, limit):
+    def main_calculation(self):
         consumption_diff = self._calc_consumption_diff()
         average_saving_per_km = self._calc_average_saving_per_km(consumption_diff)
-        self._calc_savings(average_saving_per_km, fuel_price, limit)
+        self._calc_savings(average_saving_per_km, self.config.FUEL_PRICE, self.config.LIMIT)
 
     def file_writing(self):
-        self.file_reader.write_payroll_file(self.drivers, self.all_money_saved, self.all_distance)
+        self.file_reader.write_payroll_file(self.drivers, self.all_money_saved, self.all_distance, self.config.YEAR,
+                                            self.config.MONTH, self.config.FUEL_PRICE, self.config.LIMIT)
 
 
 def main():
-    config = ConfigHelper()
-    config.display_gui()
-    manager = FuelSavingManager(config.YEAR, config.MONTH, config.FUEL_PRICE, config.LIMIT)
-    manager.process_files(config.YEAR, config.MONTH)
-    manager.main_calculation(config.FUEL_PRICE, config.LIMIT)
+    manager = FuelSavingManager()
+    manager.config.get_inputs()
+    manager.process_files()
+    manager.main_calculation()
     manager.file_writing()
-    config.root.destroy()
+    manager.config.root.destroy()
 
 
 if __name__ == "__main__":
