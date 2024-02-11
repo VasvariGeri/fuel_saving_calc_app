@@ -1,5 +1,4 @@
 from pandas import notna
-import datetime
 from tkinter import messagebox
 from models import Truck, Driver
 from helpers import FileIOHelper
@@ -104,7 +103,6 @@ class FuelSavingManager:
         consumption_diff = self._calc_consumption_diff()
         average_saving_per_km = self._calc_average_saving_per_km(consumption_diff)
         self._calc_savings(average_saving_per_km, fuel_price, limit)
-        print(self.all_money_saved)
 
     def file_writing(self):
         self.file_reader.write_payroll_file(self.drivers, self.all_money_saved, self.all_distance)
