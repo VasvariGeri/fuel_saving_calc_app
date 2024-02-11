@@ -60,42 +60,54 @@ class FileIOHelper:
 
         filepath = f"./output/Bérfizetési jegyzék {self.YEAR} {self.MONTH}.pdf"
         doc = SimpleDocTemplate(filepath)
+        elements = self._create_file_elements(drivers, all_money, all_distance)
+        doc.build(elements)
+
+    def _create_file_elements(self, drivers, all_money, all_distance):
         elements = []
+        header = [Paragraph("CUSTODE TRANS KFT"), Paragraph("6100 Kiskunfélegyháza"), Paragraph("Bajcsi-Zsilinszky u. 24")]
+        elements.extend(header)
+        title_space = Spacer(1, 48)
         space = Spacer(1, 24)
-        elements.append(space)
+        elements.append(title_space)
         title_style = ParagraphStyle(
             'TitleStyle',
             parent=getSampleStyleSheet()['Title'],
-            alignment=1
+            alignment=1,
         )
         title_text = f"Üzemanyag megtakarítás {self.YEAR}.{self.MONTH}"
         title = Paragraph(title_text, style=title_style, encoding="utf-8")
         elements.append(title)
-        title_space = Spacer(1, 48)
         elements.append(title_space)
         table_data = self._generate_table_data(drivers, all_money, all_distance)
         table_style = TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Add borders to all cells
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Add background color to the header row
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Set text color for the header row
             ('LINEBELOW', (0, 0), (-1, 0), 2, colors.black),  # Make the first line bold
-            ('LINEABOVE', (0, -1), (-1, -1), 2, colors.black),  # Make the last line bold
+            ('LINEABOVE', (0, -1), (-1, -1), 2, colors.black)  # Make the last line bold
         ])
         table = Table(table_data, style=table_style)
         elements.append(table)
         elements.append(space)
         elements.append(Paragraph(f"Gázolaj egységár: {self.FUEL}"))
-        doc.build(elements)
+        return elements
 
+    def _change_character(self, driver):
+        if "ő" in driver.name or "ű" in driver.name:
+            driver.name = driver.name.replace("ő", "ö")
+            driver.name = driver.name.replace("ű", "ü")
 
     def _generate_table_data(self, drivers, all_money, all_distance):
-        table_data = [["Név", "Teljesített km", "Megtak liter", "Megtak Ft", "Kifizethető", "Átvételi elismerés"]]
+        table_data = [["Név", "Teljesített km", "Megtak liter", "Megtak Ft", "Kifizethetö", "Átvételi elismerés"]]
         all_saved_fuel = 0
         possible_money_saved = 0
         for driver in drivers.values():
             all_saved_fuel += driver.fuel_saved
             possible_money_saved += driver.money_saved
             payable = self.LIMIT if self.LIMIT < driver.money_saved else driver.money_saved
+            self._change_character(driver)
             driver_params = [driver.name, round(driver.all_distance), driver.fuel_saved, driver.money_saved, payable, ""]
             table_data.append(driver_params)
         summed = ["Összesen", round(all_distance), round(all_saved_fuel, 2), possible_money_saved, all_money, ""]
