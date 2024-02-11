@@ -1,8 +1,7 @@
 from pandas import notna
-from tkinter import messagebox
+from tkinter import messagebox, Tk
 from models import Truck, Driver
-from helpers import FileIOHelper
-from config import ConfigHelper
+from helpers import FileIOHelper, ConfigHelper, PrintingPopup
 
 
 class FuelSavingManager:
@@ -13,6 +12,8 @@ class FuelSavingManager:
         self.file_reader = FileIOHelper()
         self.all_distance = 0
         self.all_money_saved = 0
+        self.root = Tk()
+        self.root.withdraw()
 
     def _process_mol_riport(self):
         mol_riport = self.file_reader.read_riport_file(self.config.YEAR, self.config.MONTH)
@@ -116,7 +117,8 @@ def main():
     manager.process_files()
     manager.main_calculation()
     manager.file_writing()
-    manager.config.root.destroy()
+    popup = PrintingPopup(manager.root, "Print", "Do you want to print the file?")
+    popup.create_widgets()
 
 
 if __name__ == "__main__":
