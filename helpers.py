@@ -1,4 +1,6 @@
 import os
+import platform
+import subprocess
 from pandas import ExcelFile, read_excel
 from yaml import safe_load
 from tkinter import simpledialog, messagebox, Toplevel, Button, Label, LEFT, RIGHT
@@ -186,3 +188,33 @@ class PrintingPopup:
     def _no_clicked(self):
         self.result = False
         self.popup.destroy()
+
+
+class PrintingHelper:
+    def __init__(self):
+        self.os = platform.system()
+
+    def _print_on_mac(self, file_path):
+        try:
+            subprocess.run(['lpr', file_path], check=True)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "Result file is not found!\nPrinting aborted!")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred:\n{e}")
+
+    def _print_on_windows(self, file_path):
+        try:
+            subprocess.run(['AcroRd32.exe', '/t', file_path], check=True)
+        except FileNotFoundError:
+            messagebox.showerror("Error", f"Adobe Acrobat Reader not found or result file not found.")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred:\n{e}")
+
+    def print_file(self, year, month):
+        file_path = f'./output/Bérfizetési jegyzék {year} {month}.pdf'
+        if self.os == "Darwin":
+            self._print_on_mac(file_path)
+        elif self.os == "Windows":
+            self._print_on_windows(file_path)
+        else:
+            messagebox.showerror("Error", "Not supported OS for printing!\nTry printing the file manually.")

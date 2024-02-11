@@ -1,7 +1,7 @@
 from pandas import notna
 from tkinter import messagebox, Tk
 from models import Truck, Driver
-from helpers import FileIOHelper, ConfigHelper, PrintingPopup
+from helpers import FileIOHelper, ConfigHelper, PrintingPopup, PrintingHelper
 
 
 class FuelSavingManager:
@@ -119,6 +119,8 @@ def main():
     manager.file_writing()
     popup = PrintingPopup(manager.root, "Print", "Do you want to print the file?")
     popup.create_widgets()
+    if popup.result:
+        PrintingHelper().print_file(manager.config.YEAR, manager.config.MONTH)
 
 
 if __name__ == "__main__":
