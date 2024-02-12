@@ -1,21 +1,22 @@
 from pandas import notna
-import datetime
-from tkinter import messagebox
+from tkinter import messagebox, Tk
 from models import Truck, Driver
-from helpers import FileIOHelper
-from config import ConfigHelper
+from helpers import FileIOHelper, ConfigHelper, PrintingPopup, PrintingHelper
 
 
 class FuelSavingManager:
-    def __init__(self, year, month, fuel_price):
+    def __init__(self):
         self.trucks = {}
         self.drivers = {}
-        self.file_reader = FileIOHelper(year, month, fuel_price)
+        self.config = ConfigHelper()
+        self.file_reader = FileIOHelper()
         self.all_distance = 0
         self.all_money_saved = 0
+        self.root = Tk()
+        self.root.withdraw()
 
     def _process_mol_riport(self):
-        mol_riport = self.file_reader.read_riport_file()
+        mol_riport = self.file_reader.read_riport_file(self.config.YEAR, self.config.MONTH)
         for index, row in mol_riport.iterrows():
             plate_nr = row["Rendszám"]
             if notna(plate_nr):
@@ -71,9 +72,9 @@ class FuelSavingManager:
             errors_message = "\n".join(errors)
             messagebox.showerror("Error", f"Missing norma info:\n{errors_message}")
 
-    def process_files(self, year, month):
+    def process_files(self):
         self._process_mol_riport()
-        self._process_waybills(year, month)
+        self._process_waybills(self.config.YEAR, self.config.MONTH)
         self._process_norma_file()
 
     def _calc_consumption_diff(self):
@@ -90,36 +91,36 @@ class FuelSavingManager:
     def _calc_average_saving_per_km(self, consumption_diff):
         return consumption_diff / self.all_distance
 
-    def _calc_savings(self, average_saving, fuel_price):
+    def _calc_savings(self, average_saving, fuel_price, limit):
         for driver_name in self.drivers:
             driver = self.drivers[driver_name]
             driver.fuel_saved = round(average_saving * driver.calc_distance_covered(), 2)
             driver.money_saved = round(driver.fuel_saved * fuel_price)
-            if driver.money_saved < 100000:
+            if driver.money_saved < limit:
                 self.all_money_saved += driver.money_saved
             else:
-                self.all_money_saved += 100000
+                self.all_money_saved += limit
 
-    def main_calculation(self, fuel_price):
+    def main_calculation(self):
         consumption_diff = self._calc_consumption_diff()
         average_saving_per_km = self._calc_average_saving_per_km(consumption_diff)
-        self._calc_savings(average_saving_per_km, fuel_price)
-        print(self.all_money_saved)
+        self._calc_savings(average_saving_per_km, self.config.FUEL_PRICE, self.config.LIMIT)
 
     def file_writing(self):
-        self.file_reader.write_payroll_file(self.drivers, self.all_money_saved, self.all_distance)
+        self.file_reader.write_payroll_file(self.drivers, self.all_money_saved, self.all_distance, self.config.YEAR,
+                                            self.config.MONTH, self.config.FUEL_PRICE, self.config.LIMIT)
+
 
 def main():
-    start = datetime.datetime.now()
-    config = ConfigHelper()
-    config.display_gui()
-    manager = FuelSavingManager(config.YEAR, config.MONTH, config.FUEL_PRICE)
-    manager.process_files(config.YEAR, config.MONTH)
-    manager.main_calculation(config.FUEL_PRICE)
+    manager = FuelSavingManager()
+    manager.config.get_inputs()
+    manager.process_files()
+    manager.main_calculation()
     manager.file_writing()
-    config.root.destroy()
-    end = datetime.datetime.now()
-    print(end - start)
+    popup = PrintingPopup(manager.root, "Print", "Do you want to print the file?")
+    popup.create_widgets()
+    if popup.result:
+        PrintingHelper().print_file(manager.config.YEAR, manager.config.MONTH)
 
 
 if __name__ == "__main__":
