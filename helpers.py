@@ -1,6 +1,7 @@
 import os
 import platform
 import subprocess
+import sys
 from pandas import ExcelFile, read_excel
 from yaml import safe_load
 from tkinter import simpledialog, messagebox, Toplevel, Button, Label, LEFT, RIGHT
@@ -10,10 +11,21 @@ from reportlab.platypus.tables import TableStyle
 from reportlab.lib import colors
 
 
+def get_input_directory():
+    script_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
+
+    input_dir = os.path.join(script_dir, "input").replace("_internal/", "")
+    output_dir = os.path.join(script_dir, "output").replace("_internal/", "")
+    return input_dir, output_dir
+
+
+input_dir, output_dir = get_input_directory()
+
+
 class FileIOHelper:
 
     def read_riport_file(self, year, month):
-        riport_filepath = f"./input/Ellenörző riport {year} {month}.xlsx"
+        riport_filepath = f"{input_dir}/Ellenörző riport {year} {month}.xlsx"
         try:
             mol_excel_file = ExcelFile(riport_filepath)
         except FileNotFoundError:
@@ -23,7 +35,7 @@ class FileIOHelper:
         return read_excel(riport_filepath, sheet_name=mol_riport_sheets[0])
 
     def read_waybill_file(self):
-        waybill_filepath = f"./input/Fuvarlevél nyilvántartás 2023.xlsx"
+        waybill_filepath = f"{input_dir}/Fuvarlevél nyilvántartás 2023.xlsx"
         try:
             waybill_excel_file = ExcelFile(waybill_filepath)
         except FileNotFoundError:
@@ -42,7 +54,7 @@ class FileIOHelper:
         return waybills
 
     def read_norma_file(self):
-        norma_filepath = f"./input/norma_segédtáblázat.yml"
+        norma_filepath = f"{input_dir}/norma_segédtáblázat.yml"
         if not os.path.exists(norma_filepath):
             messagebox.showerror("Error", "Norma file missing")
             exit(1)
@@ -51,11 +63,10 @@ class FileIOHelper:
         return data
 
     def write_payroll_file(self, drivers, all_money, all_distance, year, month, fuel_price, limit):
-        output_dir = "./output"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        filepath = f"./output/Bérfizetési jegyzék {year} {month}.pdf"
+        filepath = f"{output_dir}/Bérfizetési jegyzék {year} {month}.pdf"
         doc = SimpleDocTemplate(filepath)
         elements = self._create_file_elements(drivers, all_money, all_distance, year, month, fuel_price, limit)
         doc.build(elements)
@@ -211,7 +222,7 @@ class PrintingHelper:
             messagebox.showerror("Error", f"An error occurred:\n{e}")
 
     def print_file(self, year, month):
-        file_path = f'./output/Bérfizetési jegyzék {year} {month}.pdf'
+        file_path = f'{output_dir}/Bérfizetési jegyzék {year} {month}.pdf'
         if self.os == "Darwin":
             self._print_on_mac(file_path)
         elif self.os == "Windows":
