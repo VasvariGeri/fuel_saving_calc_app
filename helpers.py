@@ -72,6 +72,7 @@ class FileIOHelper:
         doc = SimpleDocTemplate(filepath)
         elements = self._create_file_elements(drivers, all_money, all_distance, year, month, fuel_price)
         doc.build(elements)
+        messagebox.showinfo("Success", "Payroll file successfully created!")
 
     def _create_file_elements(self, drivers, all_money, all_distance, year, month, fuel_price):
         elements = []
@@ -131,9 +132,9 @@ class ConfigHelper:
         self.MONTH = None
         self.FUEL_PRICE = None
 
-    def _get_input(self, prompt, validator):
+    def _get_input(self, prompt, validator, root):
         while True:
-            user_input = simpledialog.askinteger("Input", prompt)
+            user_input = simpledialog.askinteger("Input", prompt, parent=root)
             if validator(user_input):
                 return user_input
             else:
@@ -148,19 +149,19 @@ class ConfigHelper:
     def _is_valid_price(self, price):
         return 0 < price and price is not None
 
-    def _get_year(self):
-        self.YEAR = self._get_input("Enter year:", self._is_valid_year)
+    def _get_year(self, root):
+        self.YEAR = self._get_input("Enter year:", self._is_valid_year, root)
 
-    def _get_month(self):
-        self.MONTH = self._get_input("Enter month:", self._is_valid_month)
+    def _get_month(self, root):
+        self.MONTH = self._get_input("Enter month:", self._is_valid_month, root)
 
-    def _get_fuel_price(self):
-        self.FUEL_PRICE = self._get_input("Enter fuel price:", self._is_valid_price)
+    def _get_fuel_price(self, root):
+        self.FUEL_PRICE = self._get_input("Enter fuel price:", self._is_valid_price, root)
 
-    def get_inputs(self):
-        self._get_year()
-        self._get_month()
-        self._get_fuel_price()
+    def get_inputs(self, root):
+        self._get_year(root)
+        self._get_month(root)
+        self._get_fuel_price(root)
 
 class PrintingPopup:
     def __init__(self, parent, title, message):
