@@ -23,9 +23,11 @@ input_dir, output_dir = get_input_directory()
 
 
 class FileIOHelper:
+    def __init__(self):
+        self.config = self.read_yml_file("/config.yml", "Config file not found!")
 
     def read_riport_file(self, year, month):
-        riport_filepath = f"{input_dir}/Ellenörző riport {year} {month}.xlsx"
+        riport_filepath = f"{input_dir}/{self.config['mol_file']} {year} {month}.xlsx"
         try:
             mol_excel_file = ExcelFile(riport_filepath)
         except FileNotFoundError:
@@ -35,7 +37,7 @@ class FileIOHelper:
         return read_excel(riport_filepath, sheet_name=mol_riport_sheets[0])
 
     def read_waybill_file(self):
-        waybill_filepath = f"{input_dir}/Fuvarlevél nyilvántartás 2023.xlsx"
+        waybill_filepath = f"{input_dir}/{self.config['waybill_file']}.xlsx"
         try:
             waybill_excel_file = ExcelFile(waybill_filepath)
         except FileNotFoundError:
@@ -53,25 +55,26 @@ class FileIOHelper:
 
         return waybills
 
-    def read_norma_file(self):
-        norma_filepath = f"{input_dir}/norma_segédtáblázat.yml"
-        if not os.path.exists(norma_filepath):
-            messagebox.showerror("Error", "Norma file missing")
+    def read_yml_file(self, path, error_msg):
+        filepath = f"{input_dir}{path}"
+        if not os.path.exists(filepath):
+            messagebox.showerror("Error", error_msg)
             exit(1)
-        with open(norma_filepath, 'r') as file:
+        with open(filepath, 'r', encoding="utf-8") as file:
             data = safe_load(file)
         return data
 
-    def write_payroll_file(self, drivers, all_money, all_distance, year, month, fuel_price, limit):
+    def write_payroll_file(self, drivers, all_money, all_distance, year, month, fuel_price):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
         filepath = f"{output_dir}/Bérfizetési jegyzék {year} {month}.pdf"
         doc = SimpleDocTemplate(filepath)
-        elements = self._create_file_elements(drivers, all_money, all_distance, year, month, fuel_price, limit)
+        elements = self._create_file_elements(drivers, all_money, all_distance, year, month, fuel_price)
         doc.build(elements)
+        messagebox.showinfo("Success", "Payroll file successfully created!")
 
-    def _create_file_elements(self, drivers, all_money, all_distance, year, month, fuel_price, limit):
+    def _create_file_elements(self, drivers, all_money, all_distance, year, month, fuel_price):
         elements = []
         header = [Paragraph("CUSTODE TRANS KFT"), Paragraph("6100 Kiskunfélegyháza"), Paragraph("Bajcsi-Zsilinszky u. 24")]
         elements.extend(header)
@@ -87,7 +90,7 @@ class FileIOHelper:
         title = Paragraph(title_text, style=title_style, encoding="utf-8")
         elements.append(title)
         elements.append(title_space)
-        table_data = self._generate_table_data(drivers, all_money, all_distance, limit)
+        table_data = self._generate_table_data(drivers, all_money, all_distance)
         table_style = TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Add borders to all cells
@@ -107,14 +110,14 @@ class FileIOHelper:
             driver.name = driver.name.replace("ő", "ö")
             driver.name = driver.name.replace("ű", "ü")
 
-    def _generate_table_data(self, drivers, all_money, all_distance, limit):
+    def _generate_table_data(self, drivers, all_money, all_distance):
         table_data = [["Név", "Teljesített km", "Megtak liter", "Megtak Ft", "Kifizethetö", "Átvételi elismerés"]]
         all_saved_fuel = 0
         possible_money_saved = 0
         for driver in drivers.values():
             all_saved_fuel += driver.fuel_saved
             possible_money_saved += driver.money_saved
-            payable = limit if limit < driver.money_saved else driver.money_saved
+            payable = self.config["limit"] if self.config["limit"] < driver.money_saved else driver.money_saved
             self._change_character(driver)
             driver_params = [driver.name, round(driver.all_distance), driver.fuel_saved, driver.money_saved, payable, ""]
             table_data.append(driver_params)
@@ -128,11 +131,10 @@ class ConfigHelper:
         self.YEAR = None
         self.MONTH = None
         self.FUEL_PRICE = None
-        self.LIMIT = None
 
-    def _get_input(self, prompt, validator):
+    def _get_input(self, prompt, validator, root):
         while True:
-            user_input = simpledialog.askinteger("Input", prompt)
+            user_input = simpledialog.askinteger("Input", prompt, parent=root)
             if validator(user_input):
                 return user_input
             else:
@@ -147,28 +149,19 @@ class ConfigHelper:
     def _is_valid_price(self, price):
         return 0 < price and price is not None
 
-    def _is_valid_limit(self, limit):
-        if limit != 100000:
-            messagebox.showwarning("Warning", "Limit is not set to default 100.000")
-        return 0 < limit and limit is not None
+    def _get_year(self, root):
+        self.YEAR = self._get_input("Enter year:", self._is_valid_year, root)
 
-    def _get_year(self):
-        self.YEAR = self._get_input("Enter year:", self._is_valid_year)
+    def _get_month(self, root):
+        self.MONTH = self._get_input("Enter month:", self._is_valid_month, root)
 
-    def _get_month(self):
-        self.MONTH = self._get_input("Enter month:", self._is_valid_month)
+    def _get_fuel_price(self, root):
+        self.FUEL_PRICE = self._get_input("Enter fuel price:", self._is_valid_price, root)
 
-    def _get_fuel_price(self):
-        self.FUEL_PRICE = self._get_input("Enter fuel price:", self._is_valid_price)
-
-    def _get_limit(self):
-        self.LIMIT = self._get_input("Enter payable limit:", self._is_valid_limit)
-
-    def get_inputs(self):
-        self._get_year()
-        self._get_month()
-        self._get_fuel_price()
-        self._get_limit()
+    def get_inputs(self, root):
+        self._get_year(root)
+        self._get_month(root)
+        self._get_fuel_price(root)
 
 class PrintingPopup:
     def __init__(self, parent, title, message):

@@ -1,19 +1,20 @@
 from pandas import notna
-from tkinter import messagebox, Tk
+import tkinter as tk
+from tkinter import messagebox
 from models import Truck, Driver
 from helpers import FileIOHelper, ConfigHelper, PrintingPopup, PrintingHelper
 
 
 class FuelSavingManager:
     def __init__(self):
+        self.root = tk.Tk()
+        self.root.withdraw()
         self.trucks = {}
         self.drivers = {}
         self.config = ConfigHelper()
         self.file_reader = FileIOHelper()
         self.all_distance = 0
         self.all_money_saved = 0
-        self.root = Tk()
-        self.root.withdraw()
 
     def _process_mol_riport(self):
         mol_riport = self.file_reader.read_riport_file(self.config.YEAR, self.config.MONTH)
@@ -55,7 +56,7 @@ class FuelSavingManager:
                     truck.cooling_time += row["Hűtés"]
 
     def _process_norma_file(self):
-        norma = self.file_reader.read_norma_file()
+        norma = self.file_reader.read_yml_file("/norma_segédtáblázat.yml", "Norma file missing")
         errors = []
         for plate_nr in self.trucks:
             truck_details = norma.get(plate_nr)
@@ -104,16 +105,16 @@ class FuelSavingManager:
     def main_calculation(self):
         consumption_diff = self._calc_consumption_diff()
         average_saving_per_km = self._calc_average_saving_per_km(consumption_diff)
-        self._calc_savings(average_saving_per_km, self.config.FUEL_PRICE, self.config.LIMIT)
+        self._calc_savings(average_saving_per_km, self.config.FUEL_PRICE, self.file_reader.config["limit"])
 
     def file_writing(self):
         self.file_reader.write_payroll_file(self.drivers, self.all_money_saved, self.all_distance, self.config.YEAR,
-                                            self.config.MONTH, self.config.FUEL_PRICE, self.config.LIMIT)
+                                            self.config.MONTH, self.config.FUEL_PRICE)
 
 
 def main():
     manager = FuelSavingManager()
-    manager.config.get_inputs()
+    manager.config.get_inputs(manager.root)
     manager.process_files()
     manager.main_calculation()
     manager.file_writing()
