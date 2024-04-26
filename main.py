@@ -42,7 +42,10 @@ class FuelSavingManager:
             for index, row in waybill.iterrows():
                 driver_name = row["Név"]
                 if row["Év"] == year and row["Hónap"] == month and notna(driver_name):
-                    distance = row["Tényleges km"]
+                    if notna(row["Tényleges km"]):
+                        distance = row["Tényleges km"]
+                    else:
+                        distance = 0
                     if self.drivers.get(driver_name) is None:
                         driver = Driver(driver_name)
                         driver.trucks_driven[plate_nr] = distance
@@ -53,7 +56,8 @@ class FuelSavingManager:
                         self.drivers[driver_name].trucks_driven[plate_nr] += distance
                     truck = self._get_truck_by_plate_nr(plate_nr)
                     truck.distance_covered += distance
-                    truck.cooling_time += row["Hűtés"]
+                    if notna(row["Hűtés"]):
+                        truck.cooling_time += row["Hűtés"]
 
     def _process_norma_file(self):
         norma = self.file_reader.read_yml_file("/norma_segédtáblázat.yml", "Norma file missing")
@@ -108,7 +112,7 @@ class FuelSavingManager:
         self._calc_savings(average_saving_per_km, self.config.FUEL_PRICE, self.file_reader.config["limit"])
 
     def file_writing(self):
-        self.file_reader.write_payroll_file(self.drivers, self.all_money_saved, self.all_distance, self.config.YEAR,
+        self.file_reader.write_payroll_file(dict(sorted(self.drivers.items())), self.all_money_saved, self.all_distance, self.config.YEAR,
                                             self.config.MONTH, self.config.FUEL_PRICE)
 
 
